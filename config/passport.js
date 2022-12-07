@@ -1,6 +1,10 @@
 const passport = require('passport')
 const LocalStrategy = require('passport-local')
+const JwtStrategy = require('passport-jwt').Strategy
+const ExtractJwt = require('passport-jwt').ExtractJwt
+
 const bcrypt = require('bcryptjs')
+
 const { User, Restaurant } = require('../models')
 
 passport.use(new LocalStrategy(
@@ -22,6 +26,25 @@ passport.use(new LocalStrategy(
       })
   }
 ))
+
+const jwtOptions = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: process.env.JWT_SECRET
+}
+
+passport.use(new JwtStrategy(jwtOptions, (jwtPayload, cb) => {
+  User.findByPk(jwtPayload.id, {
+    include: [
+      { model: Restaurant, as: 'FavoritedRestaurants' },
+      { model: Restaurant, as: 'LikeRestaurants' },
+      { model: User, as: 'Followers' },
+      { model: User, as: 'Followings' }
+    ]
+  })
+    .then(user => cb(null, user))
+    .catch(err => cb(err))
+}))
+
 // serialize and deserialize user優點是伺服器記憶體不會消耗那麼快，而缺點是這樣一來需要跟資料庫做更頻繁的溝通來拿資料。
 // 避免存入所有USER資訊至session造成伺服器記憶體負擔，將user序列化user.id
 passport.serializeUser((user, cb) => {
