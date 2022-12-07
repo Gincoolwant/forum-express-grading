@@ -1,5 +1,5 @@
 const assert = require('assert')
-const { User, Restaurant, Comment } = require('../models')
+const { User, Restaurant, Comment } = require('../../models')
 const commentController = {
   postComment: (req, res, next) => {
     const { restaurantId, text } = req.body

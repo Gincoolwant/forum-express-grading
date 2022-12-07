@@ -6,7 +6,7 @@ const passport = require('passport')
 const methodOverride = require('method-override')
 const path = require('path')
 
-const routes = require('./routes')
+const { pages, apis } = require('./routes')
 const { getUser } = require('./helpers/auth-helpers')
 const handlebarsHelpers = require('./helpers/handlebars-helpers')
 
@@ -35,7 +35,8 @@ app.use((req, res, next) => {
 })
 app.use('/upload', express.static(path.join(__dirname, 'upload')))
 
-app.use(routes)
+app.use('/api', apis)
+app.use(pages)
 
 app.listen(port, () => {
   console.info(`Example app listening on port ${port}!`)
