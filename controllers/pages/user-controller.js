@@ -1,5 +1,3 @@
-const assert = require('assert')
-const { User, Restaurant, Like, Followship } = require('../../models')
 const userServices = require('../../services/user-services')
 
 const userController = {
@@ -55,83 +53,35 @@ const userController = {
     })
   },
   addLike: (req, res, next) => {
-    const { restaurantId } = req.params
-    const userId = req.user.id
-    return Promise.all([
-      Restaurant.findByPk(restaurantId),
-      Like.findOne({
-        where: {
-          userId,
-          restaurantId
-        }
-      })
-    ])
-      .then(([restaurant, like]) => {
-        assert(restaurant, "Restaurant didn't exist!")
-        assert(!like, 'You have liked this restaurant!')
-
-        return Like.create({
-          userId,
-          restaurantId
-        })
-      })
-      .then(() => res.redirect('back'))
-      .catch(err => next(err))
+    userServices.addLike(req, (err, data) => {
+      if (err) return next(err)
+      req.session.addLike = data
+      res.redirect('back')
+    })
   },
   removeLike: (req, res, next) => {
-    const { restaurantId } = req.params
-    const userId = req.user.id
-    return Like.findOne({
-      where: {
-        userId,
-        restaurantId
-      }
+    userServices.removeLike(req, (err, data) => {
+      if (err) return next(err)
+      req.session.removeLike = data
+      res.redirect('back')
     })
-      .then(like => {
-        assert(like, 'You have not liked this restaurant!')
-        return like.destroy()
-      })
-      .then(() => res.redirect('back'))
-      .catch(err => next(err))
   },
   getTopUsers: (req, res, next) => {
     userServices.getTopUsers(req, (err, data) => err ? next(err) : res.render('top-users', data))
   },
   addFollowing: (req, res, next) => {
-    const { userId } = req.params
-    Promise.all([
-      User.findByPk(userId),
-      Followship.findOne({
-        where: {
-          followerId: req.user.id,
-          followingId: req.params.userId
-        }
-      })
-    ])
-      .then(([user, followship]) => {
-        if (!user) throw new Error("User didn't exist!")
-        if (followship) throw new Error('You are already following this user!')
-        return Followship.create({
-          followerId: req.user.id,
-          followingId: userId
-        })
-      })
-      .then(() => res.redirect('back'))
-      .catch(err => next(err))
+    userServices.addFollowing(req, (err, data) => {
+      if (err) return next(err)
+      req.session.addFollowing = data
+      res.redirect('back')
+    })
   },
   removeFollowing: (req, res, next) => {
-    Followship.findOne({
-      where: {
-        followerId: req.user.id,
-        followingId: req.params.userId
-      }
+    userServices.removeFollowing(req, (err, data) => {
+      if (err) return next(err)
+      req.session.removeFollowing = data
+      res.redirect('back')
     })
-      .then(followship => {
-        if (!followship) throw new Error("You haven't followed this user!")
-        return followship.destroy()
-      })
-      .then(() => res.redirect('back'))
-      .catch(err => next(err))
   }
 }
 

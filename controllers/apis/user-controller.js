@@ -30,6 +30,12 @@ const userController = {
   },
   removeLike: (req, res, next) => {
     userServices.removeLike(req, (err, data) => err ? next(err) : res.json({ status: 'success', data }))
+  },
+  addFollowing: (req, res, next) => {
+    userServices.addFollowing(req, (err, data) => err ? next(err) : res.json({ status: 'success', data }))
+  },
+  removeFollowing: (req, res, next) => {
+    userServices.removeFollowing(req, (err, data) => err ? next(err) : res.json({ status: 'success', data }))
   }
 }
 
