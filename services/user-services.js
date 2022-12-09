@@ -1,4 +1,4 @@
-const { Restaurant, User, Comment } = require('../models')
+const { Restaurant, User, Comment, Favorite, Like } = require('../models')
 const { imgurFileHandler } = require('../helpers/file-helpers')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
@@ -88,7 +88,7 @@ const userServices = {
       .then(updatedUser => {
         updatedUser = updatedUser.toJSON()
         delete updatedUser.password
-        cb(null, updatedUser)
+        cb(null, { updatedUser: updatedUser })
       })
       .catch(err => cb(err))
   },
@@ -117,6 +117,87 @@ const userServices = {
           .sort((a, b) => b.followerCount - a.followerCount)
         cb(null, { users: result })
       })
+      .catch(err => cb(err))
+  },
+  addFavorite: (req, cb) => {
+    const { restaurantId } = req.params
+    const userId = req.user.id
+    return Promise.all([
+      Restaurant.findByPk(restaurantId),
+      Favorite.findOne({
+        where: {
+          userId,
+          restaurantId
+        }
+      })
+    ])
+      .then(([restaurant, favorite]) => {
+        assert(restaurant, "Restaurant didn't exist!")
+        assert(!favorite, 'You have added this restaurant into favorite list!')
+
+        return Favorite.create({
+          userId,
+          restaurantId
+        })
+      })
+      .then(addFavorite => cb(null, { addFavorite: addFavorite }))
+      .catch(err => cb(err))
+  },
+  removeFavorite: (req, cb) => {
+    const { restaurantId } = req.params
+    const userId = req.user.id
+    return Favorite.findOne({
+      where: {
+        userId,
+        restaurantId
+      }
+    })
+      .then(favorite => {
+        assert(favorite, 'You have not added this restaurant into favorite list!')
+
+        return favorite.destroy()
+      })
+      .then(removeFavorite => cb(null, { removeFavorite: removeFavorite }))
+      .catch(err => cb(err))
+  },
+  addLike: (req, cb) => {
+    const { restaurantId } = req.params
+    const userId = req.user.id
+    return Promise.all([
+      Restaurant.findByPk(restaurantId),
+      Like.findOne({
+        where: {
+          userId,
+          restaurantId
+        }
+      })
+    ])
+      .then(([restaurant, like]) => {
+        assert(restaurant, "Restaurant didn't exist!")
+        assert(!like, 'You have liked this restaurant!')
+
+        return Like.create({
+          userId,
+          restaurantId
+        })
+      })
+      .then(addLike => cb(null, { addLike: addLike }))
+      .catch(err => cb(err))
+  },
+  removeLike: (req, cb) => {
+    const { restaurantId } = req.params
+    const userId = req.user.id
+    return Like.findOne({
+      where: {
+        userId,
+        restaurantId
+      }
+    })
+      .then(like => {
+        assert(like, 'You have not liked this restaurant!')
+        return like.destroy()
+      })
+      .then(removeLike => cb(null, { removeLike: removeLike }))
       .catch(err => cb(err))
   }
 }

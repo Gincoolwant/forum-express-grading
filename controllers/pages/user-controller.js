@@ -1,5 +1,5 @@
 const assert = require('assert')
-const { User, Restaurant, Favorite, Like, Followship } = require('../../models')
+const { User, Restaurant, Like, Followship } = require('../../models')
 const userServices = require('../../services/user-services')
 
 const userController = {
@@ -41,45 +41,18 @@ const userController = {
     })
   },
   addFavorite: (req, res, next) => {
-    const { restaurantId } = req.params
-    const userId = req.user.id
-    return Promise.all([
-      Restaurant.findByPk(restaurantId),
-      Favorite.findOne({
-        where: {
-          userId,
-          restaurantId
-        }
-      })
-    ])
-      .then(([restaurant, favorite]) => {
-        assert(restaurant, "Restaurant didn't exist!")
-        assert(!favorite, 'You have added this restaurant into favorite list!')
-
-        return Favorite.create({
-          userId,
-          restaurantId
-        })
-      })
-      .then(() => res.redirect('back'))
-      .catch(err => next(err))
+    userServices.addFavorite(req, (err, data) => {
+      if (err) return next(err)
+      req.session.addFavorite = data
+      res.redirect('back')
+    })
   },
   removeFavorite: (req, res, next) => {
-    const { restaurantId } = req.params
-    const userId = req.user.id
-    return Favorite.findOne({
-      where: {
-        userId,
-        restaurantId
-      }
+    userServices.removeFavorite(req, (err, data) => {
+      if (err) return next(err)
+      req.session.removeFavorite = data
+      res.redirect('back')
     })
-      .then(favorite => {
-        assert(favorite, 'You have not added this restaurant into favorite list!')
-
-        return favorite.destroy()
-      })
-      .then(() => res.redirect('back'))
-      .catch(err => next(err))
   },
   addLike: (req, res, next) => {
     const { restaurantId } = req.params
