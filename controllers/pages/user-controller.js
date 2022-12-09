@@ -1,11 +1,10 @@
 const assert = require('assert')
-const { User, Comment, Restaurant, Favorite, Like, Followship } = require('../../models')
-const { imgurFileHandler } = require('../../helpers/file-helpers')
+const { User, Restaurant, Favorite, Like, Followship } = require('../../models')
 const userServices = require('../../services/user-services')
 
 const userController = {
   signUpPage: (req, res) => {
-    return res.render('signup')
+    res.render('signup')
   },
   signUp: (req, res, next) => {
     userServices.signIn(req, (err, data) => {
@@ -28,55 +27,18 @@ const userController = {
     res.redirect('/signin')
   },
   getUser: (req, res, next) => {
-    return Promise.all([
-      Comment.findAndCountAll({
-        where: { userId: req.params.id },
-        include: Restaurant,
-        order: [['created_at', 'DESC']],
-        raw: true,
-        nest: true
-      }),
-      User.findByPk(req.params.id, {
-        raw: true,
-        nest: true
-      })
-    ])
-      .then(([comments, user]) => {
-        assert(user, "User didn't exist!")
-        res.render('users/profile', { user, comments })
-      })
-      .catch(err => next(err))
+    userServices.getUser(req, (err, data) => err ? next(err) : res.render('users/profile', data))
   },
   editUser: (req, res, next) => {
-    return User.findByPk(req.params.id, {
-      raw: true
-    })
-      .then(user => {
-        assert(user, "User didn't exist!")
-        res.render('users/edit', { user })
-      })
-      .catch(err => next(err))
+    userServices.editUser(req, (err, data) => err ? next(err) : res.render('users/edit', data))
   },
   putUser: (req, res, next) => {
-    const { name } = req.body
-    assert(name, 'User name is required!')
-    const { file } = req
-    return Promise.all([
-      imgurFileHandler(file),
-      User.findByPk(req.params.id)
-    ])
-      .then(([filePath, user]) => {
-        if (!user) throw new Error("Restaurant didn't exist!")
-        return user.update({
-          name,
-          image: filePath || user.image
-        })
-      })
-      .then(() => {
-        req.flash('success_messages', '使用者資料編輯成功')
-        res.redirect(`/users/${req.params.id}`)
-      })
-      .catch(err => next(err))
+    userServices.putUser(req, (err, data) => {
+      if (err) return next(err)
+      req.flash('success_messages', '使用者資料編輯成功')
+      req.session.updateUser = data
+      res.redirect(`/users/${req.params.id}`)
+    })
   },
   addFavorite: (req, res, next) => {
     const { restaurantId } = req.params
@@ -160,22 +122,7 @@ const userController = {
       .catch(err => next(err))
   },
   getTopUsers: (req, res, next) => {
-    // 撈出所有 User 與 followers 資料
-    return User.findAll({
-      include: [{ model: User, as: 'Followers' }]
-    })
-      .then(users => {
-        // 整理 users 資料，把每個 user 項目都拿出來處理一次，並把新陣列儲存在 users 裡
-        const result = users
-          .map(user => ({
-            ...user.toJSON(),
-            followerCount: user.Followers.length,
-            isFollowed: req.user.Followings.some(f => f.id === user.id)
-          }))
-          .sort((a, b) => b.followerCount - a.followerCount)
-        res.render('top-users', { users: result })
-      })
-      .catch(err => next(err))
+    userServices.getTopUsers(req, (err, data) => err ? next(err) : res.render('top-users', data))
   },
   addFollowing: (req, res, next) => {
     const { userId } = req.params
